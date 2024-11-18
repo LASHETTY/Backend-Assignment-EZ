@@ -1,0 +1,14 @@
+def test_signup(client):
+    response = client.post('/signup', json={
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "test1234"
+    })
+    assert response.status_code == 200
+
+def test_login(client):
+    response = client.post('/login', json={
+        "username": "testuser",
+        "password": "test1234"
+    })
+    assert response.status_code == 200

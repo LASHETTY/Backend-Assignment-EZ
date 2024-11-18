@@ -1,0 +1,9 @@
+@app.route('/download/<int:file_id>', methods=['GET'])
+@jwt_required()
+def download_file(file_id):
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'client':
+        return jsonify({"message": "Unauthorized"}), 403
+
+    file = File.query.get_or_404(file_id)
+    return jsonify({"download-link": f"http://yourdomain.com/download/{file.secure_url}", "message": "success"})

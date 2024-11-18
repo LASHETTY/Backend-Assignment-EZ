@@ -1,0 +1,42 @@
+from flask_jwt_extended import jwt_required, get_jwt_identity
+import os
+
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pptx', 'docx', 'xlsx'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['POST'])
+@jwt_required()
+def upload_file():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'ops':
+        return jsonify({"message": "Unauthorized"}), 403
+
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+        filename = secrets.token_hex(16) + os.path.splitext(file.filename)[1]
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        secure_url = secrets.token_urlsafe(32)
+        new_file = File(filename=filename, uploader_id=current_user['id'], secure_url=secure_url)
+        db.session.add(new_file)
+        db.session.commit()
+        return jsonify({"message": "File uploaded successfully", "secure_url": secure_url})
+    return jsonify({"message": "Invalid file type"}), 400
+
+@app.route('/files', methods=['GET'])
+@jwt_required()
+def list_files():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'client':
+        return jsonify({"message": "Unauthorized"}), 403
+
+    files = File.query.all()
+    return jsonify([{"id": file.id, "filename": file.filename, "secure_url": file.secure_url} for file in files])
